@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>MetaCoin | Truffle Webpack Demo w/ Frontend</title>
+    <title>AmongAll | Truffle Webpack w/ Frontend</title>
   </head>
   <style>
     input {
@@ -9,29 +9,60 @@
       margin-bottom: 12px;
     }
   </style>
+
   <body>
-    <h1>MetaCoin — Example Truffle Dapp</h1>
-    <p>You have <strong class="balance">loading...</strong> META</p>
-
-    <h1>Send MetaCoin</h1>
-
-    <label for="amount">Amount:</label>
-    <input type="text" id="amount" placeholder="e.g. 95" />
-
-    <label for="receiver">To address:</label>
-    <input
-      type="text"
-      id="receiver"
-      placeholder="e.g. 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae"
-    />
-
-    <button onclick="App.sendCoin()">Send MetaCoin</button>
-
+    <h1>AmongAll — AmongAll Dapp</h1>
+    <div id="error" class="error">
+      <p id="error-code"></p>
+      <p id="error-message"></p>
+      <!--<p id="error-stack"></p>-->
+    </div>
     <p id="status"></p>
     <p>
-      <strong>Hint:</strong> open the browser developer console to view any
-      errors and warnings.
+      <strong>Hint:</strong>
+      open the browser developer console to view any errors and warnings.
     </p>
+
+    <h1>Register</h1>
+    <p>Please add your Mobile Price</p>
+    <input type="text" id="price" placeholder="e.g. 95" />
+    <button onclick="App.register()">Register</button>
+
+    <h1>Create Claim</h1>
+    <p>Only if a claim was not created previously. Only for registered users</p>
+    <select id="claim-type">
+      <option value="">-- Select the claim --</option>
+      <option value="1">Loss</option>
+      <option value="2">Damage</option>
+    </select>
+    <button onclick="App.createClaim()">Create Claim</button>
+    <button onclick="App.executeClaim()">Execute Claim</button>
+
+    <h1>Manage</h1>
+    <p>Address:</p>
+    <input
+      type="text"
+      id="address"
+      placeholder="e.g: 0x9C6d18E2AE24183798f118F331D9297910f14A6c"
+    />
+    <p>Address: <span id="claim-address"></span></p>
+    <p>Status: <span id="claim-status"></span></p>
+    <p>Mobile price: <span id="claim-price"></span></p>
+    <button onclick="App.getStatus()">Get Status</button>
+    <button onclick="App.acceptClaim()">Accept Claim!</button>
+    
+    <h2>
+      Total Balance:
+      <span class="total-balance"></span>
+    </h2>
+    <h2>
+      Total Users:
+      <span class="total-users"></span>
+    </h2>
+    <h2>
+      Total Claims:
+      <span class="total-claims"></span>
+    </h2>
     <script src="index.js"></script>
   </body>
 </html>
