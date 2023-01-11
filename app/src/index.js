@@ -2,12 +2,15 @@ import Web3 from "web3";
 import amongAllArtifact from "../../build/contracts/AmongAll.json";
 
 function getErrorMessage(message){
-  var errorMessageInJson = JSON.parse(
-    message.slice(58, message.length - 2)
-  );
-  
-  var errorMessageToShow = errorMessageInJson.data.data[Object.keys(errorMessageInJson.data.data)[0]].reason;
-  return errorMessageToShow;
+  let errorMessage = message;
+  try {
+    const errorMessageInJson = JSON.parse(
+      message.slice(58, message.length - 2)
+    );
+    errorMessage = errorMessageInJson.data.data[Object.keys(errorMessageInJson.data.data)[0]].reason;
+  } catch (error) {
+  }
+  return errorMessage;
 }
 
 const App = {
@@ -29,27 +32,33 @@ const App = {
       // get accounts
       const accounts = await web3.eth.getAccounts();
       this.account = accounts[0];
+
+      const myAccountElement = document.getElementById("account");
+      myAccountElement.innerHTML = this.account
+
+      this.reset();
       this.refreshTotals();
     } catch (error) {
       console.error("Could not connect to contract or chain.");
       console.error(error)
-      
+
     }
   },
   refreshTotals: async function() {
     const { getTotalUsers, getTotalBalance, getTotalClaims } = this.meta.methods;
-    const balance = await getTotalBalance().call();
-    const users = await getTotalUsers().call();
-    const claims = await getTotalClaims().call();
+    const balanceMethod = await getTotalBalance().call();
+    const usersMethod = await getTotalUsers().call();
+    const claimsMethod = await getTotalClaims().call();
     const totalBalance = document.getElementsByClassName("total-balance")[0];
     const totalUsers = document.getElementsByClassName("total-users")[0];
     const totalClaims = document.getElementsByClassName("total-claims")[0];
-    totalBalance.innerHTML = balance;
-    totalUsers.innerHTML = users;
-    totalClaims.innerHTML = claims;
+    totalBalance.innerHTML = `${Web3.utils.fromWei(balanceMethod)} Ethers`;
+    totalUsers.innerHTML = usersMethod;
+    totalClaims.innerHTML = claimsMethod;
   },
 
   register: async function() {
+    this.reset();
     const price = Web3.utils.toWei((document.getElementById("price").value), 'ether');
     const value = Web3.utils.toHex(price / 10);
     this.setStatus("Initiating transaction... (please wait)");
@@ -60,13 +69,14 @@ const App = {
       console.log(error);
       this.setStatus("");
       this.setError(error.code, error.message, error.stack)
-      return; 
+      return;
     }
     this.setStatus("Mobile registered");
     this.refreshTotals();
   },
 
   createClaim: async function() {
+    this.reset();
     const claim = document.getElementById("claim-type").value;
     const claimStatus = claim == 0 ? 'None' : claim == 1 ? 'Loss' : 'Damage'
     this.setStatus(`Initiating claim ${claimStatus}`);
@@ -77,13 +87,14 @@ const App = {
       console.log(error);
       this.setStatus("");
       this.setError(error.code, error.message, error.stack)
-      return; 
+      return;
     }
     this.setStatus("Claim registered");
     this.refreshTotals();
   },
 
   acceptClaim: async function() {
+    this.reset();
     const address = document.getElementById("address").value;
     this.setStatus(`Accepting claim of ${address}`);
     const { acceptClaim } = this.meta.methods;
@@ -93,13 +104,14 @@ const App = {
       console.log(error);
       this.setStatus("");
       this.setError(error.code, error.message, error.stack)
-      return; 
+      return;
     }
     this.setStatus("Claim accepted");
     this.refreshTotals();
   },
 
   executeClaim: async function() {
+    this.reset();
     this.setStatus(`Executing current claim `);
     const { executeClaim } = this.meta.methods;
     try {
@@ -108,30 +120,29 @@ const App = {
       console.log(error);
       this.setStatus("");
       this.setError(error.code, error.message, error.stack)
-      return; 
+      return;
     }
     this.setStatus("Claim executed");
     this.refreshTotals();
   },
 
   getStatus: async function() {
+    this.reset();
     const address = document.getElementById("address").value;
     const { getMobilePrice, getClaimStatus } = this.meta.methods;
     try {
-      const addressElement = document.getElementById("claim-address");
-      addressElement.innerHTML = address;
       const price = await getMobilePrice(address).call();
       const priceElement = document.getElementById("claim-price");
-      priceElement.innerHTML = price;
+      priceElement.innerHTML = `${Web3.utils.fromWei(price)} Ethers`;
       const status = await getClaimStatus(address).call();
       const statusElement = document.getElementById("claim-status");
-      statusElement.innerHTML = status == 0 ?  'Unaccepted' : 'Accepted';  
-      
+      statusElement.innerHTML = status == 0 ?  'Unaccepted' : 'Accepted';
+
     } catch(error) {
       console.log(error);
       this.setStatus("");
       this.setError(error.code, error.message, error.stack)
-      return; 
+      return;
     }
   },
 
@@ -144,16 +155,31 @@ const App = {
 
   setStatus: function(message) {
     const status = document.getElementById("status");
+    status.hidden = false
     status.innerHTML = message;
+    const error = document.getElementById("error");
+    error.hidden = true
   },
 
-  setError: function(code, message, stack) {
+  reset: function () {
+    this.setStatus("")
+    this.setError("", "")
+    const error = document.getElementById("error");
+    error.hidden = true;
+    const status = document.getElementById("status");
+    status.hidden = true;
+  },
+
+  setError: function(code, message) {
+    const error = document.getElementById("error");
+    error.hidden = false;
+    const status = document.getElementById("status");
+    status.hidden = true;
+
     const errorCode = document.getElementById("error-code");
     errorCode.innerHTML = code;
     const errorMessage = document.getElementById("error-message");
-    errorMessage.innerHTML = getErrorMessage(message);
-    const errorStack = document.getElementById("error-stack");
-    errorStack.innerHTML = stack;
+    errorMessage.innerHTML = getErrorMessage(message) || message;
   },
 };
 
@@ -176,3 +202,8 @@ window.addEventListener("load", function() {
 
   App.start();
 });
+
+window.ethereum.on('accountsChanged', function (accounts) {
+  const myAccountElement = document.getElementById("account");
+  myAccountElement.innerHTML = accounts[0]
+})
