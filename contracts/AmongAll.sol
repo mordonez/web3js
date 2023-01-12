@@ -17,10 +17,16 @@ contract AmongAll {
     uint constant stable_value = 10 wei;
     uint constant minimum_accepts = 2;
 
+    struct IPFS_hash {
+        bytes1 hash_function;
+        bytes1 hash_size;
+        bytes32 digest;
+    }
     struct User {
         uint mobile_price;
         bool registered;
         Claim claim;
+        IPFS_hash data;
     }
 
     struct Claim {
@@ -29,16 +35,21 @@ contract AmongAll {
         C_status claim_status;
         mapping(address => bool) voted;
     }
-    
+
     enum C_type {None, Loss, Damage}
     enum C_status {Unaccepted, Accepted}
-    
+
     mapping(address => User) users;
+
+
 
     // @notice Register a user
     // @dev Msg.value based on the following formula: (mobile_price x stable_value). Only for unregistered users
     // @param mobile_price The value of the mobile phone
     // @return Transaction execution status
+
+    //12207237a7f4-091a74ae95514890fa86-a2e8a36037c350ea71c06a34c8cbe25a5057
+    //hash_function-hash_size-digest
     function register(uint mobile_price) public payable returns (bool) {
         require(msg.value == mobile_price.div(stable_value), "Your share should match Equation 1");
         require(msg.value >= stable_value, "Your share should be higher than the constant defined in Equation 1");
@@ -52,7 +63,7 @@ contract AmongAll {
 
         return true;
     }
-    
+
     // @notice Create a claim
     // @dev Only if a claim was not created previously. Only for registered users
     // @param claim_type The type of claim (Loss = 1, Damage = 2)
@@ -60,30 +71,30 @@ contract AmongAll {
     function createClaim(C_type claim_type) external returns (bool) {
         require(users[msg.sender].claim.claim_type == C_type.None, "Claim type already defined!");
         require(users[msg.sender].registered == true, "User not registered!");
-        
+
         users[msg.sender].claim.claim_type = claim_type;
 
         total_claims++;
-        
+
         return true;
     }
-    
+
     // @notice Accept a claim
     // @dev Only registered users can accept claims from other users. It is required a #minimum_accepts of approvals
     // @param _address The address of the user whose request you want to accept
-    // @return Transaction execution status    
+    // @return Transaction execution status
     function acceptClaim(address _address) external returns (bool) {
         require(_address != msg.sender, "You cannot accept your own claim!");
         require(users[_address].claim.claim_status == C_status.Unaccepted, "Claim already accepted!");
         require(users[msg.sender].registered == true, "User not registered!");
         require(users[_address].claim.voted[msg.sender] == false, "You already voted for this claim!");
         require(users[_address].claim.votes < minimum_accepts, "Minimum number of accepts reached!");
-        
+
         users[_address].claim.voted[msg.sender] = true;
         ++users[_address].claim.votes;
-        
+
         if(users[_address].claim.votes == minimum_accepts){
-            users[_address].claim.claim_status = C_status.Accepted;    
+            users[_address].claim.claim_status = C_status.Accepted;
         }
 
         return true;
@@ -91,22 +102,22 @@ contract AmongAll {
 
     // @notice Execute the claim and withdraw the funds.
     // @dev Only for accecpted claims
-    // @return Transaction execution status    
+    // @return Transaction execution status
     function executeClaim() external returns (bool) {
         require(users[msg.sender].claim.claim_status == C_status.Accepted, "Claim does not have the Accepted status!");
-        
+
         uint amount = users[msg.sender].mobile_price;
-        
+
         if(users[msg.sender].claim.claim_type == C_type.Loss) {
             (bool success, ) = msg.sender.call{value: amount.mul(95).div(100)}("");
-            require(success, "Transfer failed.");    
+            require(success, "Transfer failed.");
         } else {
             (bool success, ) = msg.sender.call{value: amount.mul(55).div(100)}("");
             require(success, "Transfer failed.");
         }
 
         delete users[msg.sender];
-        
+
         return true;
     }
 
@@ -114,7 +125,7 @@ contract AmongAll {
     receive() external payable {
         revert();
     }
-    
+
     // @notice Get the total balance
     // @return The ether stored in the contract
     function getTotalBalance() public view returns (uint) {
@@ -122,7 +133,7 @@ contract AmongAll {
     }
 
     // @notice Get the total of users registered
-    // @return Number of users registered   
+    // @return Number of users registered
     function getTotalUsers() public view returns (uint) {
         return total_users;
     }
@@ -145,4 +156,9 @@ contract AmongAll {
     function getClaimStatus (address _address) public view returns (C_status) {
         return users[_address].claim.claim_status;
     }
+
+    function getIPFShash(address _address) public view returns (bytes memory) {
+        return abi.encodePacked(users[_address].data.hash_function, users[_address].data.hash_size, users[_address].data.digest);
+    }
+
 }

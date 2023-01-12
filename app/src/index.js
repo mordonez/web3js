@@ -1,5 +1,6 @@
 import Web3 from "web3";
 import amongAllArtifact from "../../build/contracts/AmongAll.json";
+import { create as ipfsHttp } from 'ipfs-http-client'
 
 function getErrorMessage(message){
   let errorMessage = message;
@@ -17,6 +18,7 @@ const App = {
   web3: null,
   account: null,
   meta: null,
+  ipfs: null,
   start: async function() {
     const { web3 } = this;
 
@@ -36,6 +38,13 @@ const App = {
       const myAccountElement = document.getElementById("account");
       myAccountElement.innerHTML = this.account
 
+
+      const ipfs = ipfsHttp('/ip4/127.0.0.1/tcp/5001');
+      const isOnline = await ipfs.isOnline();
+      if (isOnline) {
+        this.ipfs = ipfs;
+      }
+
       this.reset();
       this.refreshTotals();
     } catch (error) {
@@ -44,6 +53,7 @@ const App = {
 
     }
   },
+
   refreshTotals: async function() {
     const { getTotalUsers, getTotalBalance, getTotalClaims } = this.meta.methods;
     const balanceMethod = await getTotalBalance().call();
